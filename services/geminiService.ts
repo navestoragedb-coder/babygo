@@ -13,15 +13,15 @@ export const analyzeAndGenerateNames = async (
   const model = 'gemini-3-flash-preview';
   
   const historicalInstruction = language === 'es' 
-    ? `ACTÚA COMO UN ANALISTA DE BASE DE DATOS DE NOMBRES DE BEBÉ HISTÓRICOS (1980-2024).
-       El usuario busca nombres reales que fueron populares o tendencia en la era 1980-2024.
+    ? `ACTÚA COMO UN ANALISTA DE BASE DE DATOS DE NOMBRES DE BEBÉ HISTÓRICOS.
+       El usuario busca nombres reales que han sido populares o tendencia en las últimas décadas.
        Coincide con el estilo/preferencia: "${query}".
-       Proporciona 10 coincidencias precisas basadas en datos históricos de nombres de EE. UU. y globales para esas décadas.
+       Proporciona 10 coincidencias precisas basadas en datos históricos de nombres.
        TODA la respuesta (significados, importancia cultural, etc.) DEBE estar en ESPAÑOL.`
-    : `ACT AS A HISTORICAL BABY NAMES DATABASE ANALYST (1980-2024).
-       The user is looking for real names that were popular or trended in the 1980-2024 era.
+    : `ACT AS A HISTORICAL BABY NAMES DATABASE ANALYST.
+       The user is looking for real names that have been popular or trended in recent decades.
        Match the style/preference: "${query}".
-       Provide 10 accurate matches based on historical US and global name data for those decades.
+       Provide 10 accurate matches based on historical name data.
        ALL response text MUST be in ENGLISH.`;
 
   const aiInstruction = language === 'es'

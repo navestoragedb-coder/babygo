@@ -2,10 +2,12 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Header from './components/Header';
 import NameCard from './components/NameCard';
+import NotFound from './components/NotFound';
 import { analyzeAndGenerateNames } from './services/geminiService';
 import { BabyName, SearchMode, Language } from './types';
 
 const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'home' | '404'>('home');
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('historical');
   const [language, setLanguage] = useState<Language>('en');
@@ -80,6 +82,7 @@ const App: React.FC = () => {
 
   const handleFavoritesView = () => {
     if (favorites.length === 0 && !showFavoritesOnly) return;
+    setCurrentView('home');
     setShowFavoritesOnly(!showFavoritesOnly);
     setSearched(true);
     setTimeout(() => {
@@ -95,14 +98,25 @@ const App: React.FC = () => {
     }, 50);
   };
 
+  const navigateTo404 = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setCurrentView('404');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateHome = () => {
+    setCurrentView('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const t = {
     en: {
       heroBadge: 'Scientific Name Discovery',
       heroTitle: 'The Science of the Perfect Name',
       heroSub: 'Stop guessing. Start computing. Discover names using advanced phonetics, cultural heritage, and compatibility algorithms.',
-      searchModeDb: 'Search (1980-2024)',
+      searchModeDb: 'Search',
       searchModeAi: 'AI Generation',
-      searchPlaceholderDb: 'Search 1980-2024 database...',
+      searchPlaceholderDb: 'Search name database...',
       searchPlaceholderAi: 'Generate unique AI names...',
       analyze: 'Analyze',
       analyzing: 'Analyzing...',
@@ -119,8 +133,8 @@ const App: React.FC = () => {
       viewingFavs: (count: number) => `Viewing your ${count} saved favorites.`,
       noFavs: "You haven't saved any favorites yet.",
       noResults: "No matches found. Try refining your parameters.",
-      statsNames: 'Names Analyzed',
-      statsParents: 'Happy Parents',
+      statsNames: 'Names Catalogued',
+      statsParents: 'Parents Assisted',
       statsAccuracy: 'Match Accuracy',
       ctaTitle: 'Ready to find the perfect name?',
       ctaSub: 'Join thousands of parents using AI to make the most important decision of their lives with confidence.',
@@ -131,9 +145,9 @@ const App: React.FC = () => {
       heroBadge: 'Descubrimiento Científico de Nombres',
       heroTitle: 'La Ciencia del Nombre Perfecto',
       heroSub: 'Deja de adivinar. Empieza a computar. Descubre nombres usando fonética avanzada, herencia cultural y algoritmos de compatibilidad.',
-      searchModeDb: 'Buscar (1980-2024)',
+      searchModeDb: 'Buscar',
       searchModeAi: 'Generación IA',
-      searchPlaceholderDb: 'Buscar en base de datos 1980-2024...',
+      searchPlaceholderDb: 'Buscar en base de datos...',
       searchPlaceholderAi: 'Generar nombres únicos por IA...',
       analyze: 'Analizar',
       analyzing: 'Analizando...',
@@ -150,8 +164,8 @@ const App: React.FC = () => {
       viewingFavs: (count: number) => `Viendo tus ${count} favoritos guardados.`,
       noFavs: "Aún no has guardado ningún favorito.",
       noResults: "No se encontraron coincidencias. Intenta refinar tus parámetros.",
-      statsNames: 'Nombres Analizados',
-      statsParents: 'Padres Felices',
+      statsNames: 'Nombres Catalogados',
+      statsParents: 'Padres Asistidos',
       statsAccuracy: 'Precisión de Coincidencia',
       ctaTitle: '¿Listo para encontrar el nombre perfecto?',
       ctaSub: 'Únete a miles de padres que usan IA para tomar la decisión más importante de sus vidas con confianza.',
@@ -172,206 +186,227 @@ const App: React.FC = () => {
       />
 
       <main className="flex-grow flex flex-col items-center w-full">
-        {/* Hero Section */}
-        <section className="w-full relative px-4 sm:px-10 py-20 lg:py-32 flex flex-col items-center justify-center min-h-[600px]">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] opacity-60"></div>
-          </div>
-          <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-4xl text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-dark border border-accent-border w-fit shadow-lg shadow-primary/5">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              <span className="text-xs font-medium text-white uppercase tracking-wider">{t.heroBadge}</span>
-            </div>
-            <div className="flex flex-col gap-6">
-              <h1 className="text-white text-5xl md:text-7xl font-black leading-tight tracking-tight">
-                {t.heroTitle.split(' ').slice(0, -2).join(' ')} <br className="hidden sm:block"/><span className="text-primary">{t.heroTitle.split(' ').slice(-2).join(' ')}</span>
-              </h1>
-              <p className="text-slate-300 text-lg md:text-xl font-normal leading-relaxed max-w-2xl mx-auto">
-                {t.heroSub}
-              </p>
-            </div>
-
-            <div className="w-full max-w-3xl mt-6 flex flex-col gap-4">
-              {/* Search Mode Toggle */}
-              <div className="flex justify-center">
-                <div className="bg-accent-dark border border-accent-border p-1 rounded-xl flex gap-1">
-                  <button 
-                    onClick={() => setSearchMode('historical')}
-                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'historical' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    <span className="material-symbols-outlined text-base">search</span>
-                    {t.searchModeDb}
-                  </button>
-                  <button 
-                    onClick={() => setSearchMode('ai')}
-                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'ai' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    <span className="material-symbols-outlined text-base">bolt</span>
-                    {t.searchModeAi}
-                  </button>
-                </div>
+        {currentView === '404' ? (
+          <NotFound onBackHome={navigateHome} language={language} />
+        ) : (
+          <>
+            {/* Hero Section */}
+            <section className="w-full relative px-4 sm:px-10 py-20 lg:py-32 flex flex-col items-center justify-center min-h-[600px]">
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] opacity-60"></div>
               </div>
-
-              <form onSubmit={handleSearch} className="w-full group">
-                <div className="relative flex items-center w-full p-2 bg-accent-input border border-accent-border rounded-2xl focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all shadow-2xl">
-                  <div className="pl-4 pr-2 flex items-center justify-center text-[#c89295]">
-                    <span className="material-symbols-outlined text-3xl">
-                      {loading ? 'sync' : searchMode === 'historical' ? 'database' : 'auto_awesome'}
-                    </span>
-                  </div>
-                  <input 
-                    className="w-full bg-transparent border-0 focus:ring-0 text-white text-lg placeholder-[#c89295]/70 h-14 px-2" 
-                    placeholder={searchMode === 'historical' ? t.searchPlaceholderDb : t.searchPlaceholderAi}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    disabled={loading}
-                  />
-                  <button 
-                    id="main-analyze-btn"
-                    type="submit"
-                    disabled={loading}
-                    className="hidden sm:flex items-center justify-center h-12 px-8 bg-primary hover:bg-red-600 disabled:bg-slate-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-primary/25 whitespace-nowrap text-base"
-                  >
-                    {loading ? t.analyzing : t.analyze}
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={loading}
-                    className="sm:hidden flex items-center justify-center h-12 w-12 bg-primary hover:bg-red-600 disabled:bg-slate-700 text-white rounded-xl transition-all shadow-lg"
-                  >
-                    <span className="material-symbols-outlined">{loading ? 'sync' : 'arrow_forward'}</span>
-                  </button>
+              <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-4xl text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-dark border border-accent-border w-fit shadow-lg shadow-primary/5">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                  <span className="text-xs font-medium text-white uppercase tracking-wider">{t.heroBadge}</span>
                 </div>
-                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mt-6 text-sm">
-                  <span className="text-slate-500 font-medium">{t.trySearch}</span>
-                  <button type="button" onClick={() => handleQuickSearch(t.classic)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
-                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">history_edu</span> {t.classic}
-                  </button>
-                  <button type="button" onClick={() => handleQuickSearch(t.nature)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
-                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">forest</span> {t.nature}
-                  </button>
-                  <button type="button" onClick={() => handleQuickSearch(t.rhythmic)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
-                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">music_note</span> {t.rhythmic}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </section>
-
-        {/* Results Section */}
-        {searched && (
-          <section ref={resultsRef} className="w-full bg-background-dark py-20 border-t border-accent-border scroll-mt-16">
-            <div className="max-w-[1280px] mx-auto px-4 sm:px-10">
-              <div className="flex flex-col gap-8 mb-12">
-                <div className="flex flex-col gap-2">
-                  <h2 className="text-white text-3xl font-bold flex items-center gap-3">
-                    <span className="text-primary material-symbols-outlined">
-                      {showFavoritesOnly ? 'favorite' : 'analytics'}
-                    </span>
-                    {showFavoritesOnly ? t.favoritesTitle : `${t.resultsTitle} (${searchMode === 'historical' ? t.dbLabel : t.aiLabel})`}
-                  </h2>
-                  <p className="text-slate-400">
-                    {showFavoritesOnly 
-                      ? t.viewingFavs(favorites.length) 
-                      : t.foundMatches(results.length, query)}
+                <div className="flex flex-col gap-6">
+                  <h1 className="text-white text-5xl md:text-7xl font-black leading-tight tracking-tight">
+                    {t.heroTitle.split(' ').slice(0, -2).join(' ')} <br className="hidden sm:block"/><span className="text-primary">{t.heroTitle.split(' ').slice(-2).join(' ')}</span>
+                  </h1>
+                  <p className="text-slate-300 text-lg md:text-xl font-normal leading-relaxed max-w-2xl mx-auto">
+                    {t.heroSub}
                   </p>
                 </div>
-              </div>
 
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-64 bg-accent-input/30 rounded-2xl border border-accent-border"></div>
-                  ))}
+                <div className="w-full max-w-3xl mt-6 flex flex-col gap-4">
+                  {/* Search Mode Toggle */}
+                  <div className="flex justify-center">
+                    <div className="bg-accent-dark border border-accent-border p-1 rounded-xl flex gap-1">
+                      <button 
+                        onClick={() => setSearchMode('historical')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'historical' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                      >
+                        <span className="material-symbols-outlined text-base">search</span>
+                        {t.searchModeDb}
+                      </button>
+                      <button 
+                        onClick={() => setSearchMode('ai')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'ai' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                      >
+                        <span className="material-symbols-outlined text-base">bolt</span>
+                        {t.searchModeAi}
+                      </button>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSearch} className="w-full group">
+                    <div className="relative flex items-center w-full p-2 bg-accent-input border border-accent-border rounded-2xl focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all shadow-2xl">
+                      <div className="pl-4 pr-2 flex items-center justify-center text-[#c89295]">
+                        <span className="material-symbols-outlined text-3xl">
+                          {loading ? 'sync' : searchMode === 'historical' ? 'database' : 'auto_awesome'}
+                        </span>
+                      </div>
+                      <input 
+                        className="w-full bg-transparent border-0 focus:ring-0 text-white text-lg placeholder-[#c89295]/70 h-14 px-2" 
+                        placeholder={searchMode === 'historical' ? t.searchPlaceholderDb : t.searchPlaceholderAi}
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        disabled={loading}
+                      />
+                      <button 
+                        id="main-analyze-btn"
+                        type="submit"
+                        disabled={loading}
+                        className="hidden sm:flex items-center justify-center h-12 px-8 bg-primary hover:bg-red-600 disabled:bg-slate-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-primary/25 whitespace-nowrap text-base"
+                      >
+                        {loading ? t.analyzing : t.analyze}
+                      </button>
+                      <button 
+                        type="submit"
+                        disabled={loading}
+                        className="sm:hidden flex items-center justify-center h-12 w-12 bg-primary hover:bg-red-600 disabled:bg-slate-700 text-white rounded-xl transition-all shadow-lg"
+                      >
+                        <span className="material-symbols-outlined">{loading ? 'sync' : 'arrow_forward'}</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mt-6 text-sm">
+                      <span className="text-slate-500 font-medium">{t.trySearch}</span>
+                      <button type="button" onClick={() => handleQuickSearch(t.classic)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
+                        <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">history_edu</span> {t.classic}
+                      </button>
+                      <button type="button" onClick={() => handleQuickSearch(t.nature)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
+                        <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">forest</span> {t.nature}
+                      </button>
+                      <button type="button" onClick={() => handleQuickSearch(t.rhythmic)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
+                        <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">music_note</span> {t.rhythmic}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {displayResults.map((item, idx) => (
-                    <NameCard 
-                      key={`${item.name}-${idx}`} 
-                      item={item} 
-                      isFavorite={!!favorites.find(f => f.name === item.name)}
-                      onToggleFavorite={toggleFavorite}
-                      language={language}
-                    />
-                  ))}
-                  {displayResults.length === 0 && (
-                    <div className="col-span-full py-20 text-center text-slate-500 italic">
-                      {showFavoritesOnly ? t.noFavs : t.noResults}
+              </div>
+            </section>
+
+            {/* Results Section */}
+            {searched && (
+              <section ref={resultsRef} className="w-full bg-background-dark py-20 border-t border-accent-border scroll-mt-16">
+                <div className="max-w-[1280px] mx-auto px-4 sm:px-10">
+                  <div className="flex flex-col gap-8 mb-12">
+                    <div className="flex flex-col gap-2">
+                      <h2 className="text-white text-3xl font-bold flex items-center gap-3">
+                        <span className="text-primary material-symbols-outlined">
+                          {showFavoritesOnly ? 'favorite' : 'analytics'}
+                        </span>
+                        {showFavoritesOnly ? t.favoritesTitle : `${t.resultsTitle} (${searchMode === 'historical' ? t.dbLabel : t.aiLabel})`}
+                      </h2>
+                      <p className="text-slate-400">
+                        {showFavoritesOnly 
+                          ? t.viewingFavs(favorites.length) 
+                          : t.foundMatches(results.length, query)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="h-64 bg-accent-input/30 rounded-2xl border border-accent-border"></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {displayResults.map((item, idx) => (
+                        <NameCard 
+                          key={`${item.name}-${idx}`} 
+                          item={item} 
+                          isFavorite={!!favorites.find(f => f.name === item.name)}
+                          onToggleFavorite={toggleFavorite}
+                          language={language}
+                        />
+                      ))}
+                      {displayResults.length === 0 && (
+                        <div className="col-span-full py-20 text-center text-slate-500 italic">
+                          {showFavoritesOnly ? t.noFavs : t.noResults}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </section>
+              </section>
+            )}
+
+            {/* Stats Strip */}
+            <section className="w-full bg-accent-dark/30 border-y border-accent-border">
+              <div className="max-w-[1280px] mx-auto px-4 sm:px-10 py-12">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-all group shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t.statsNames}</p>
+                      <div className="size-8 bg-background-dark/50 rounded-lg flex items-center justify-center border border-accent-border group-hover:border-primary/30 transition-colors">
+                        <span className="material-symbols-outlined text-primary text-xl">database</span>
+                      </div>
+                    </div>
+                    <div className="flex items-end gap-3 mt-2">
+                      <p className="text-white text-4xl font-black tracking-tighter">102,481</p>
+                      <div className="flex flex-col mb-1">
+                        <p className="text-[#0bda95] text-[10px] font-black flex items-center bg-[#0bda95]/10 px-1.5 py-0.5 rounded-full border border-[#0bda95]/20">
+                          <span className="material-symbols-outlined text-[12px] mr-0.5">trending_up</span> 14%
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-tight">Verified Name Index</p>
+                  </div>
+                  <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-all group shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t.statsParents}</p>
+                      <div className="size-8 bg-background-dark/50 rounded-lg flex items-center justify-center border border-accent-border group-hover:border-primary/30 transition-colors">
+                        <span className="material-symbols-outlined text-primary text-xl">favorite</span>
+                      </div>
+                    </div>
+                    <div className="flex items-end gap-3 mt-2">
+                      <p className="text-white text-4xl font-black tracking-tighter">18,742</p>
+                      <div className="flex flex-col mb-1">
+                        <p className="text-[#0bda95] text-[10px] font-black flex items-center bg-[#0bda95]/10 px-1.5 py-0.5 rounded-full border border-[#0bda95]/20">
+                          <span className="material-symbols-outlined text-[12px] mr-0.5">trending_up</span> 8%
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-tight">Global Community Usage</p>
+                  </div>
+                  <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-all group shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t.statsAccuracy}</p>
+                      <div className="size-8 bg-background-dark/50 rounded-lg flex items-center justify-center border border-accent-border group-hover:border-primary/30 transition-colors">
+                        <span className="material-symbols-outlined text-primary text-xl">verified</span>
+                      </div>
+                    </div>
+                    <div className="flex items-end gap-3 mt-2">
+                      <p className="text-white text-4xl font-black tracking-tighter">99.8%</p>
+                      <div className="flex flex-col mb-1">
+                        <p className="text-[#0bda95] text-[10px] font-black flex items-center bg-[#0bda95]/10 px-1.5 py-0.5 rounded-full border border-[#0bda95]/20">
+                          <span className="material-symbols-outlined text-[12px] mr-0.5">check</span> LIVE
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-tight">Phonetic Score Precision</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* CTA Section */}
+            <section className="w-full px-4 sm:px-10 py-20">
+              <div className="max-w-[1280px] mx-auto bg-gradient-to-r from-accent-dark to-[#2a1516] border border-accent-border rounded-2xl p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
+                <div className="flex flex-col gap-4 max-w-xl text-center md:text-left">
+                  <h2 className="text-white text-3xl font-bold">{t.ctaTitle}</h2>
+                  <p className="text-slate-300">{t.ctaSub}</p>
+                </div>
+                <button 
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="flex-none bg-primary hover:bg-red-600 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:-translate-y-0.5"
+                >
+                  {t.ctaBtn}
+                </button>
+              </div>
+            </section>
+          </>
         )}
-
-        {/* Stats Strip */}
-        <section className="w-full bg-accent-dark/30 border-y border-accent-border">
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-10 py-12">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <p className="text-slate-300 text-base font-medium">{t.statsNames}</p>
-                  <span className="material-symbols-outlined text-primary">database</span>
-                </div>
-                <div className="flex items-end gap-3">
-                  <p className="text-white text-3xl font-bold">2M+</p>
-                  <p className="text-[#0bda95] text-sm font-medium mb-1 flex items-center">
-                    <span className="material-symbols-outlined text-sm">trending_up</span> 15%
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <p className="text-slate-300 text-base font-medium">{t.statsParents}</p>
-                  <span className="material-symbols-outlined text-primary">sentiment_satisfied</span>
-                </div>
-                <div className="flex items-end gap-3">
-                  <p className="text-white text-3xl font-bold">10k+</p>
-                  <p className="text-[#0bda95] text-sm font-medium mb-1 flex items-center">
-                    <span className="material-symbols-outlined text-sm">trending_up</span> 5%
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <p className="text-slate-300 text-base font-medium">{t.statsAccuracy}</p>
-                  <span className="material-symbols-outlined text-primary">verified</span>
-                </div>
-                <div className="flex items-end gap-3">
-                  <p className="text-white text-3xl font-bold">99%</p>
-                  <p className="text-[#0bda95] text-sm font-medium mb-1 flex items-center">
-                    <span className="material-symbols-outlined text-sm">trending_up</span> 1%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="w-full px-4 sm:px-10 py-20">
-          <div className="max-w-[1280px] mx-auto bg-gradient-to-r from-accent-dark to-[#2a1516] border border-accent-border rounded-2xl p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
-            <div className="flex flex-col gap-4 max-w-xl text-center md:text-left">
-              <h2 className="text-white text-3xl font-bold">{t.ctaTitle}</h2>
-              <p className="text-slate-300">{t.ctaSub}</p>
-            </div>
-            <button 
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex-none bg-primary hover:bg-red-600 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:-translate-y-0.5"
-            >
-              {t.ctaBtn}
-            </button>
-          </div>
-        </section>
       </main>
 
       <footer className="w-full border-t border-accent-border bg-background-dark py-12 px-4 sm:px-10">
         <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 text-center md:text-left">
-          <div className="flex flex-col gap-4 items-center md:items-start">
+          <div className="flex flex-col gap-4 items-center md:items-start cursor-pointer" onClick={navigateHome}>
             <div className="flex items-center gap-2 text-white">
               <span className="material-symbols-outlined text-primary">smart_toy</span>
               <span className="font-bold text-xl">Babygo</span>
@@ -380,24 +415,24 @@ const App: React.FC = () => {
           </div>
           <div className="flex flex-col gap-4">
             <h4 className="text-white font-bold">{language === 'en' ? 'Company' : 'Compañía'}</h4>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'About Us' : 'Sobre Nosotros'}</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Careers' : 'Carreras'}</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Contact' : 'Contacto'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'About Us' : 'Sobre Nosotros'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'Careers' : 'Carreras'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'Contact' : 'Contacto'}</a>
           </div>
           <div className="flex flex-col gap-4">
             <h4 className="text-white font-bold">{language === 'en' ? 'Resources' : 'Recursos'}</h4>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Blog</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Name Trends 2024' : 'Tendencias 2024'}</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Science' : 'Ciencia'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">Blog</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'Name Trends' : 'Tendencias'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'Science' : 'Ciencia'}</a>
           </div>
           <div className="flex flex-col gap-4">
             <h4 className="text-white font-bold">{language === 'en' ? 'Legal' : 'Legal'}</h4>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Privacy Policy' : 'Política de Privacidad'}</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Terms of Service' : 'Términos de Servicio'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'Privacy Policy' : 'Política de Privacidad'}</a>
+            <a onClick={navigateTo404} className="text-slate-400 hover:text-primary text-sm transition-colors cursor-pointer" href="#">{language === 'en' ? 'Terms of Service' : 'Términos de Servicio'}</a>
           </div>
         </div>
         <div className="max-w-[1280px] mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-600 text-sm">© 2024 Babygo AI Inc. {language === 'en' ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
+          <p className="text-slate-600 text-sm">© 2026 Babygo AI Inc. {language === 'en' ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
           <div className="flex gap-4">
             <a className="text-slate-500 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined">thumb_up</span></a>
             <a className="text-slate-500 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined">share</span></a>
