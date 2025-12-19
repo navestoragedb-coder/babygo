@@ -19,3 +19,4 @@ export enum NamingStyle {
 }
 
 export type SearchMode = 'historical' | 'ai';
+export type Language = 'en' | 'es';

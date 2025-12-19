@@ -3,11 +3,12 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Header from './components/Header';
 import NameCard from './components/NameCard';
 import { analyzeAndGenerateNames } from './services/geminiService';
-import { BabyName, SearchMode } from './types';
+import { BabyName, SearchMode, Language } from './types';
 
 const App: React.FC = () => {
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('historical');
+  const [language, setLanguage] = useState<Language>('en');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<BabyName[]>([]);
   const [favorites, setFavorites] = useState<BabyName[]>([]);
@@ -16,22 +17,30 @@ const App: React.FC = () => {
   
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Load favorites from local storage
+  // Load favorites and language from local storage
   useEffect(() => {
-    const saved = localStorage.getItem('babygo_favorites');
-    if (saved) {
+    const savedFavs = localStorage.getItem('babygo_favorites');
+    const savedLang = localStorage.getItem('babygo_language');
+    if (savedFavs) {
       try {
-        setFavorites(JSON.parse(saved));
+        setFavorites(JSON.parse(savedFavs));
       } catch (e) {
         console.error("Failed to parse favorites", e);
       }
     }
+    if (savedLang === 'en' || savedLang === 'es') {
+      setLanguage(savedLang as Language);
+    }
   }, []);
 
-  // Save favorites to local storage
+  // Save state to local storage
   useEffect(() => {
     localStorage.setItem('babygo_favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('babygo_language', language);
+  }, [language]);
 
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -42,7 +51,7 @@ const App: React.FC = () => {
     setShowFavoritesOnly(false);
     
     try {
-      const data = await analyzeAndGenerateNames(query, searchMode);
+      const data = await analyzeAndGenerateNames(query, searchMode, language);
       setResults(data);
       
       setTimeout(() => {
@@ -53,7 +62,7 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [query, searchMode]);
+  }, [query, searchMode, language]);
 
   const toggleFavorite = (item: BabyName) => {
     setFavorites(prev => {
@@ -63,6 +72,10 @@ const App: React.FC = () => {
       }
       return [...prev, item];
     });
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(prev => prev === 'en' ? 'es' : 'en');
   };
 
   const handleFavoritesView = () => {
@@ -82,6 +95,71 @@ const App: React.FC = () => {
     }, 50);
   };
 
+  const t = {
+    en: {
+      heroBadge: 'Scientific Name Discovery',
+      heroTitle: 'The Science of the Perfect Name',
+      heroSub: 'Stop guessing. Start computing. Discover names using advanced phonetics, cultural heritage, and compatibility algorithms.',
+      searchModeDb: 'Search (1980-2024)',
+      searchModeAi: 'AI Generation',
+      searchPlaceholderDb: 'Search 1980-2024 database...',
+      searchPlaceholderAi: 'Generate unique AI names...',
+      analyze: 'Analyze',
+      analyzing: 'Analyzing...',
+      trySearch: 'Try searching for:',
+      classic: 'Classic',
+      nature: 'Nature-inspired',
+      rhythmic: 'Rhythmic flow',
+      resultsTitle: 'Discovery Results',
+      favoritesTitle: 'My Favorites',
+      myFavs: 'My Favorites',
+      dbLabel: 'Database',
+      aiLabel: 'AI',
+      foundMatches: (count: number, q: string) => `Analysis complete. Found ${count} matches for "${q}".`,
+      viewingFavs: (count: number) => `Viewing your ${count} saved favorites.`,
+      noFavs: "You haven't saved any favorites yet.",
+      noResults: "No matches found. Try refining your parameters.",
+      statsNames: 'Names Analyzed',
+      statsParents: 'Happy Parents',
+      statsAccuracy: 'Match Accuracy',
+      ctaTitle: 'Ready to find the perfect name?',
+      ctaSub: 'Join thousands of parents using AI to make the most important decision of their lives with confidence.',
+      ctaBtn: 'Start Free Analysis',
+      footerAbout: 'The first scientifically backed baby name finder powered by artificial intelligence.'
+    },
+    es: {
+      heroBadge: 'Descubrimiento Científico de Nombres',
+      heroTitle: 'La Ciencia del Nombre Perfecto',
+      heroSub: 'Deja de adivinar. Empieza a computar. Descubre nombres usando fonética avanzada, herencia cultural y algoritmos de compatibilidad.',
+      searchModeDb: 'Buscar (1980-2024)',
+      searchModeAi: 'Generación IA',
+      searchPlaceholderDb: 'Buscar en base de datos 1980-2024...',
+      searchPlaceholderAi: 'Generar nombres únicos por IA...',
+      analyze: 'Analizar',
+      analyzing: 'Analizando...',
+      trySearch: 'Prueba buscando:',
+      classic: 'Clásico',
+      nature: 'Inspirado en la naturaleza',
+      rhythmic: 'Flujo rítmico',
+      resultsTitle: 'Resultados del Descubrimiento',
+      favoritesTitle: 'Mis Favoritos',
+      myFavs: 'Mis Favoritos',
+      dbLabel: 'Base de Datos',
+      aiLabel: 'IA',
+      foundMatches: (count: number, q: string) => `Análisis completo. Se encontraron ${count} coincidencias para "${q}".`,
+      viewingFavs: (count: number) => `Viendo tus ${count} favoritos guardados.`,
+      noFavs: "Aún no has guardado ningún favorito.",
+      noResults: "No se encontraron coincidencias. Intenta refinar tus parámetros.",
+      statsNames: 'Nombres Analizados',
+      statsParents: 'Padres Felices',
+      statsAccuracy: 'Precisión de Coincidencia',
+      ctaTitle: '¿Listo para encontrar el nombre perfecto?',
+      ctaSub: 'Únete a miles de padres que usan IA para tomar la decisión más importante de sus vidas con confianza.',
+      ctaBtn: 'Empezar Análisis Gratis',
+      footerAbout: 'El primer buscador de nombres para bebés con base científica impulsado por inteligencia artificial.'
+    }
+  }[language];
+
   const displayResults = showFavoritesOnly ? favorites : results;
 
   return (
@@ -89,6 +167,8 @@ const App: React.FC = () => {
       <Header 
         favoritesCount={favorites.length} 
         onFavoritesClick={handleFavoritesView}
+        language={language}
+        onLanguageToggle={toggleLanguage}
       />
 
       <main className="flex-grow flex flex-col items-center w-full">
@@ -100,14 +180,14 @@ const App: React.FC = () => {
           <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-4xl text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-dark border border-accent-border w-fit shadow-lg shadow-primary/5">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              <span className="text-xs font-medium text-white uppercase tracking-wider">Scientific Name Discovery</span>
+              <span className="text-xs font-medium text-white uppercase tracking-wider">{t.heroBadge}</span>
             </div>
             <div className="flex flex-col gap-6">
               <h1 className="text-white text-5xl md:text-7xl font-black leading-tight tracking-tight">
-                The Science of the <br className="hidden sm:block"/><span className="text-primary">Perfect Name</span>
+                {t.heroTitle.split(' ').slice(0, -2).join(' ')} <br className="hidden sm:block"/><span className="text-primary">{t.heroTitle.split(' ').slice(-2).join(' ')}</span>
               </h1>
               <p className="text-slate-300 text-lg md:text-xl font-normal leading-relaxed max-w-2xl mx-auto">
-                Stop guessing. Start computing. Discover names using advanced phonetics, cultural heritage, and compatibility algorithms.
+                {t.heroSub}
               </p>
             </div>
 
@@ -120,14 +200,14 @@ const App: React.FC = () => {
                     className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'historical' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <span className="material-symbols-outlined text-base">search</span>
-                    Search (1980-2024)
+                    {t.searchModeDb}
                   </button>
                   <button 
                     onClick={() => setSearchMode('ai')}
                     className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${searchMode === 'ai' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <span className="material-symbols-outlined text-base">bolt</span>
-                    AI Generation
+                    {t.searchModeAi}
                   </button>
                 </div>
               </div>
@@ -141,7 +221,7 @@ const App: React.FC = () => {
                   </div>
                   <input 
                     className="w-full bg-transparent border-0 focus:ring-0 text-white text-lg placeholder-[#c89295]/70 h-14 px-2" 
-                    placeholder={searchMode === 'historical' ? "Search 1980-2024 database..." : "Generate unique AI names..."}
+                    placeholder={searchMode === 'historical' ? t.searchPlaceholderDb : t.searchPlaceholderAi}
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -153,7 +233,7 @@ const App: React.FC = () => {
                     disabled={loading}
                     className="hidden sm:flex items-center justify-center h-12 px-8 bg-primary hover:bg-red-600 disabled:bg-slate-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-primary/25 whitespace-nowrap text-base"
                   >
-                    {loading ? 'Analyzing...' : 'Analyze'}
+                    {loading ? t.analyzing : t.analyze}
                   </button>
                   <button 
                     type="submit"
@@ -164,15 +244,15 @@ const App: React.FC = () => {
                   </button>
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mt-6 text-sm">
-                  <span className="text-slate-500 font-medium">Try searching for:</span>
-                  <button type="button" onClick={() => handleQuickSearch('Classic')} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
-                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">history_edu</span> Classic
+                  <span className="text-slate-500 font-medium">{t.trySearch}</span>
+                  <button type="button" onClick={() => handleQuickSearch(t.classic)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
+                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">history_edu</span> {t.classic}
                   </button>
-                  <button type="button" onClick={() => handleQuickSearch('Nature-inspired')} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
-                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">forest</span> Nature-inspired
+                  <button type="button" onClick={() => handleQuickSearch(t.nature)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
+                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">forest</span> {t.nature}
                   </button>
-                  <button type="button" onClick={() => handleQuickSearch('Rhythmic flow')} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
-                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">music_note</span> Rhythmic flow
+                  <button type="button" onClick={() => handleQuickSearch(t.rhythmic)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 group/btn">
+                    <span className="material-symbols-outlined text-base group-hover/btn:text-primary transition-colors">music_note</span> {t.rhythmic}
                   </button>
                 </div>
               </form>
@@ -190,12 +270,12 @@ const App: React.FC = () => {
                     <span className="text-primary material-symbols-outlined">
                       {showFavoritesOnly ? 'favorite' : 'analytics'}
                     </span>
-                    {showFavoritesOnly ? 'My Favorites' : `Discovery Results (${searchMode === 'historical' ? 'Database' : 'AI'})`}
+                    {showFavoritesOnly ? t.favoritesTitle : `${t.resultsTitle} (${searchMode === 'historical' ? t.dbLabel : t.aiLabel})`}
                   </h2>
                   <p className="text-slate-400">
                     {showFavoritesOnly 
-                      ? `Viewing your ${favorites.length} saved favorites.` 
-                      : `Analysis complete. Found ${results.length} matches for "${query}".`}
+                      ? t.viewingFavs(favorites.length) 
+                      : t.foundMatches(results.length, query)}
                   </p>
                 </div>
               </div>
@@ -214,11 +294,12 @@ const App: React.FC = () => {
                       item={item} 
                       isFavorite={!!favorites.find(f => f.name === item.name)}
                       onToggleFavorite={toggleFavorite}
+                      language={language}
                     />
                   ))}
                   {displayResults.length === 0 && (
                     <div className="col-span-full py-20 text-center text-slate-500 italic">
-                      {showFavoritesOnly ? "You haven't saved any favorites yet." : "No matches found. Try refining your parameters."}
+                      {showFavoritesOnly ? t.noFavs : t.noResults}
                     </div>
                   )}
                 </div>
@@ -233,7 +314,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-colors">
                 <div className="flex items-center justify-between">
-                  <p className="text-slate-300 text-base font-medium">Names Analyzed</p>
+                  <p className="text-slate-300 text-base font-medium">{t.statsNames}</p>
                   <span className="material-symbols-outlined text-primary">database</span>
                 </div>
                 <div className="flex items-end gap-3">
@@ -245,7 +326,7 @@ const App: React.FC = () => {
               </div>
               <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-colors">
                 <div className="flex items-center justify-between">
-                  <p className="text-slate-300 text-base font-medium">Happy Parents</p>
+                  <p className="text-slate-300 text-base font-medium">{t.statsParents}</p>
                   <span className="material-symbols-outlined text-primary">sentiment_satisfied</span>
                 </div>
                 <div className="flex items-end gap-3">
@@ -257,7 +338,7 @@ const App: React.FC = () => {
               </div>
               <div className="flex flex-col gap-2 p-6 rounded-xl bg-accent-input/50 border border-accent-border hover:border-primary/50 transition-colors">
                 <div className="flex items-center justify-between">
-                  <p className="text-slate-300 text-base font-medium">Match Accuracy</p>
+                  <p className="text-slate-300 text-base font-medium">{t.statsAccuracy}</p>
                   <span className="material-symbols-outlined text-primary">verified</span>
                 </div>
                 <div className="flex items-end gap-3">
@@ -271,76 +352,18 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Process Section */}
-        <section className="w-full bg-accent-input/30 py-20 border-y border-accent-border">
-          <div className="max-w-[960px] mx-auto px-4 sm:px-10">
-            <div className="text-center mb-16">
-              <h2 className="text-white text-3xl md:text-4xl font-bold mb-4">From Input to Insight</h2>
-              <p className="text-slate-400">Four simple steps to finding the one.</p>
-            </div>
-            <div className="grid grid-cols-[48px_1fr] gap-x-6 px-4">
-              <div className="flex flex-col items-center pt-2">
-                <div className="w-12 h-12 rounded-full bg-accent-dark border border-accent-border flex items-center justify-center text-primary z-10">
-                  <span className="material-symbols-outlined">keyboard</span>
-                </div>
-                <div className="w-[2px] bg-accent-border h-full min-h-[60px] -mt-2"></div>
-              </div>
-              <div className="flex flex-col pb-12 pt-2">
-                <h3 className="text-white text-xl font-bold mb-1">Input Preferences</h3>
-                <p className="text-[#c89295]">Tell us your surname, desired style (e.g., "Classic", "Modern"), and any cultural requirements.</p>
-              </div>
-              
-              <div className="flex flex-col items-center">
-                <div className="w-[2px] bg-accent-border h-4 -mb-2"></div>
-                <div className="w-12 h-12 rounded-full bg-accent-dark border border-accent-border flex items-center justify-center text-primary z-10 relative">
-                  <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-20"></div>
-                  <span className="material-symbols-outlined">psychology</span>
-                </div>
-                <div className="w-[2px] bg-accent-border h-full min-h-[60px] -mt-2"></div>
-              </div>
-              <div className="flex flex-col pb-12 pt-2">
-                <h3 className="text-white text-xl font-bold mb-1">AI Analysis</h3>
-                <p className="text-[#c89295]">Our engine runs millions of combinations against your criteria to score phonetic compatibility.</p>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <div className="w-[2px] bg-accent-border h-4 -mb-2"></div>
-                <div className="w-12 h-12 rounded-full bg-accent-dark border border-accent-border flex items-center justify-center text-primary z-10">
-                  <span className="material-symbols-outlined">format_list_bulleted</span>
-                </div>
-                <div className="w-[2px] bg-accent-border h-full min-h-[60px] -mt-2"></div>
-              </div>
-              <div className="flex flex-col pb-12 pt-2">
-                <h3 className="text-white text-xl font-bold mb-1">Review Matches</h3>
-                <p className="text-[#c89295]">Receive a curated list of top-scoring names, complete with origin stories and popularity trends.</p>
-              </div>
-
-              <div className="flex flex-col items-center pb-2">
-                <div className="w-[2px] bg-accent-border h-4 -mb-2"></div>
-                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 z-10">
-                  <span className="material-symbols-outlined">check_circle</span>
-                </div>
-              </div>
-              <div className="flex flex-col pt-2">
-                <h3 className="text-white text-xl font-bold mb-1">Select Name</h3>
-                <p className="text-[#c89295]">Save your favorites or finalize the perfect choice for your baby.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="w-full px-4 sm:px-10 py-20">
           <div className="max-w-[1280px] mx-auto bg-gradient-to-r from-accent-dark to-[#2a1516] border border-accent-border rounded-2xl p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="flex flex-col gap-4 max-w-xl text-center md:text-left">
-              <h2 className="text-white text-3xl font-bold">Ready to find the perfect name?</h2>
-              <p className="text-slate-300">Join thousands of parents using AI to make the most important decision of their lives with confidence.</p>
+              <h2 className="text-white text-3xl font-bold">{t.ctaTitle}</h2>
+              <p className="text-slate-300">{t.ctaSub}</p>
             </div>
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="flex-none bg-primary hover:bg-red-600 text-white font-bold py-4 px-8 rounded-xl transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:-translate-y-0.5"
             >
-              Start Free Analysis
+              {t.ctaBtn}
             </button>
           </div>
         </section>
@@ -353,28 +376,28 @@ const App: React.FC = () => {
               <span className="material-symbols-outlined text-primary">smart_toy</span>
               <span className="font-bold text-xl">Babygo</span>
             </div>
-            <p className="text-slate-500 text-sm">The first scientifically backed baby name finder powered by artificial intelligence.</p>
+            <p className="text-slate-500 text-sm">{t.footerAbout}</p>
           </div>
           <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold">Company</h4>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">About Us</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Careers</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Contact</a>
+            <h4 className="text-white font-bold">{language === 'en' ? 'Company' : 'Compañía'}</h4>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'About Us' : 'Sobre Nosotros'}</a>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Careers' : 'Carreras'}</a>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Contact' : 'Contacto'}</a>
           </div>
           <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold">Resources</h4>
+            <h4 className="text-white font-bold">{language === 'en' ? 'Resources' : 'Recursos'}</h4>
             <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Blog</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Name Trends 2024</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Science</a>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Name Trends 2024' : 'Tendencias 2024'}</a>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Science' : 'Ciencia'}</a>
           </div>
           <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold">Legal</h4>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Privacy Policy</a>
-            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">Terms of Service</a>
+            <h4 className="text-white font-bold">{language === 'en' ? 'Legal' : 'Legal'}</h4>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Privacy Policy' : 'Política de Privacidad'}</a>
+            <a className="text-slate-400 hover:text-primary text-sm transition-colors" href="#">{language === 'en' ? 'Terms of Service' : 'Términos de Servicio'}</a>
           </div>
         </div>
         <div className="max-w-[1280px] mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-600 text-sm">© 2024 Babygo AI Inc. All rights reserved.</p>
+          <p className="text-slate-600 text-sm">© 2024 Babygo AI Inc. {language === 'en' ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
           <div className="flex gap-4">
             <a className="text-slate-500 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined">thumb_up</span></a>
             <a className="text-slate-500 hover:text-white transition-colors" href="#"><span className="material-symbols-outlined">share</span></a>
